@@ -2,7 +2,7 @@
 
 import re
 from collections import deque
-from math import prod
+from math import prod, lcm
 
 class Monkey:
     def __init__(self, name, start_items, operation, test):
@@ -24,6 +24,8 @@ class Monkey:
 
 def get_monkeys(s):
     monkeys = []
+    multiples = []
+
     pattern = (
         r'Monkey (\d+):$'
         r'.*?Starting items: (.+?)$'
@@ -42,20 +44,26 @@ def get_monkeys(s):
             test=[int(v) for v in r[3:]]
         )
 
+        multiples.append(int(r[3]))
         monkeys.append(m)
-    return monkeys
+    return (lcm(*multiples), monkeys)
 
-def do_round(f, num_rounds, can_reduce_worry):
-    monkeys = get_monkeys(f.read())
+def do_round(f, num_rounds, part1):
+    lcm, monkeys = get_monkeys(f.read())
 
     for _ in range(num_rounds):
         for m in monkeys:
             while len(m.items):
                 m.items[0] = m.operation(m.items[0])  # inspect item, raise worry
-                if can_reduce_worry:
+                if part1:
                     m.items[0] //= 3  # done inspect, lower worry
+                else:
+                    m.items[0] %= lcm
+
                 monkey_to = m.test(m.items[0])  # determine what monkey to toss to based on worry
-                monkeys[monkey_to].items.append(m.items.popleft())  # toss to other monkey
+                num_tossed = m.items.popleft()
+                monkeys[monkey_to].items.append(num_tossed)  # toss to other monkey
+                #print(f'monkey {m.name} tosses to {monkey_to}')
 
     inspection_counts = [m.num_inspections for m in monkeys]
     inspection_counts.sort(reverse=True)
